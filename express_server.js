@@ -37,6 +37,11 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+  const foundUser = verifyEmail(req.body.email);
+  if (!foundUser) {
+    res.status(400);
+    return res.send("Please enter an Email")
+  }
   const id = generateRandomString();
   users[id] = {
     id,
@@ -112,3 +117,18 @@ function generateRandomString() {
   }
   return randomString
 }
+
+function verifyEmail (email) {
+  if (email === "") {
+    return null
+    // res.status(400);
+    // return res.send("Please enter an Email")
+  }
+}
+//   for (key in users) {
+//     if (email === users[key].email) {
+//       res.status(400);
+//       res.send("Please enter an Email")
+//     }
+// }}
+// verifyEmail(req.body.email)

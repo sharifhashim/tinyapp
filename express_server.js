@@ -27,13 +27,18 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    user_id: users[req.cookies["user_id"]],
-    username: req.cookies["username"]}
+    user_id: users[req.cookies["user_id"]]
+  }
   res.render("urls_new", templateVars)
 })
 
 app.get("/register", (req, res) => {
-  res.render("urls_register")
+  const templateVars = { 
+    user_id: users[req.cookies["user_id"]],
+    shortURL: req.params.shortURL, 
+    longURL: urlDatabase[req.params.shortURL]
+  }
+  res.render("urls_register", templateVars)
 });
 
 app.post("/register", (req, res) => {
@@ -58,8 +63,7 @@ app.post("/register", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const templateVars = { 
-    user_id: users[req.cookies["user_id"]],
-    username: req.cookies["username"], 
+    user_id: users[req.cookies["user_id"]], 
     urls: urlDatabase 
   };
   res.render("urls_index", templateVars);
@@ -68,7 +72,6 @@ app.get("/urls", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { 
     user_id: users[req.cookies["user_id"]],
-    username: req.cookies["username"],
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL]
   }
@@ -98,18 +101,32 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  res.render("urls_login")
+  const templateVars = { 
+    user_id: users[req.cookies["user_id"]],
+    shortURL: req.params.shortURL, 
+    longURL: urlDatabase[req.params.shortURL]
+  }
+  res.render("urls_login", templateVars)
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username)
-  res.redirect("/urls")
+  const {email, password} = req.body
+  if (!email) {
+    return res.status(403).send('Forbidden Please Enter An Email')
+  }
+  for (user in users) {
+    if (users[user].email === email) {
+    } if (users[user].password === password) {
+      res.cookie("user_id", users[user].id)
+      return res.redirect("/urls")
+    }
+  }
+  return res.status(403).send('Forbidden')
 });
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id")
-  res.clearCookie("username")
-  res.redirect("/register")
+  res.redirect("/login")
 });
 
 app.listen(PORT, () => {

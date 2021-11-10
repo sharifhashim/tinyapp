@@ -37,10 +37,14 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  const foundUser = verifyEmail(req.body.email);
-  if (!foundUser) {
-    res.status(400);
-    return res.send("Please enter an Email")
+  const {email, password} = req.body
+  if (!email) {
+    return res.status(400).send('Bad Request Please Enter An Email')
+  }
+  for (user in users) {
+    if (users[user].email === email) {
+      return res.status(400).send('Bad Request Email Already Exists')
+    }
   }
   const id = generateRandomString();
   users[id] = {
@@ -49,7 +53,6 @@ app.post("/register", (req, res) => {
     password: req.body.password
   };
   res.cookie("user_id", id)
-  console.log(users)
   res.redirect("/urls")
 });
 
@@ -117,18 +120,3 @@ function generateRandomString() {
   }
   return randomString
 }
-
-function verifyEmail (email) {
-  if (email === "") {
-    return null
-    // res.status(400);
-    // return res.send("Please enter an Email")
-  }
-}
-//   for (key in users) {
-//     if (email === users[key].email) {
-//       res.status(400);
-//       res.send("Please enter an Email")
-//     }
-// }}
-// verifyEmail(req.body.email)

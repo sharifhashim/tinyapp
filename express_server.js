@@ -75,6 +75,9 @@ app.get("/urls", (req, res) => {
     user_id: users[req.cookies["user_id"]], 
     urls: urlDatabase 
   };
+  if (!templateVars.user_id) {
+    return res.send("Please Login or Register to view URLs")
+  }
   res.render("urls_index", templateVars);
 });
 

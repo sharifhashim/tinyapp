@@ -29,6 +29,9 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user_id: users[req.cookies["user_id"]]
   }
+  if (!templateVars.user_id) {
+    return res.redirect("/login")
+  }
   res.render("urls_new", templateVars)
 })
 
@@ -80,6 +83,12 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
+  const templateVars = {
+    user_id: users[req.cookies["user_id"]]
+  }
+  if (!templateVars.user_id) {
+    return res.status(403).send("Forbidden Please Login to post")
+  }
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL
   res.redirect(`urls/${shortURL}`)
@@ -117,7 +126,7 @@ app.post("/login", (req, res) => {
   for (user in users) {
     if (users[user].email === email) {
     } if (users[user].password === password) {
-      res.cookie("user_id", users[user].id)
+        res.cookie("user_id", users[user].id) 
       return res.redirect("/urls")
     }
   }

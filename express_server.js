@@ -3,10 +3,12 @@ const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const morgan = require('morgan')
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
 app.use(cookieParser());
+app.use(morgan("dev"))
 
 const users = {
   "userRandomID": {
@@ -71,10 +73,13 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  const id = users[req.cookies["user_id"]]
   const templateVars = { 
-    user_id: users[req.cookies["user_id"]], 
-    urls: urlDatabase 
+    user_id: id, 
+    urls: urlsForUser(id.id) 
   };
+  //console.log("id ->", id.id)
+  //console.log(templateVars)
   if (!templateVars.user_id) {
     return res.send("Please Login or Register to view URLs")
   }
@@ -87,6 +92,9 @@ app.get("/urls/:shortURL", (req, res) => {
     user_id: users[req.cookies["user_id"]],
     shortURL: shortURL, 
     longURL: urlDatabase[shortURL].longURL
+  }
+  if (!templateVars.user_id) {
+    return res.status(403).send("Forbidden Please Login")
   }
   res.render("urls_show", templateVars)
 });
@@ -117,6 +125,9 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  if (urlDatabase[req.params.shortURL].userID !== req.cookies["user_id"]) {
+    res.send("Only the Owner/Creater of URLs can delete")
+  }
   delete urlDatabase[req.params.shortURL]
   res.redirect("/urls")
 });
@@ -168,3 +179,14 @@ function generateRandomString() {
   }
   return randomString
 }
+
+function urlsForUser(id) {
+  let urlsForUserDB = {}
+  for (let key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      urlsForUserDB[key] = urlDatabase[key]
+    }
+  }
+  return urlsForUserDB
+}
+

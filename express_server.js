@@ -17,8 +17,14 @@ const users = {
 };
 
 let urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "userRandomID"
+  },
+  "9sm5xK": {
+    longURL: "http://www.google.com",
+    userID: "userRandomID"
+  }
 };
 
 app.get("/urls.json", (req, res) => {
@@ -73,12 +79,12 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
   const templateVars = { 
     user_id: users[req.cookies["user_id"]],
-    shortURL: req.params.shortURL, 
-    longURL: urlDatabase[req.params.shortURL]
+    shortURL: shortURL, 
+    longURL: urlDatabase[shortURL].longURL
   }
-  console.log(templateVars)
   res.render("urls_show", templateVars)
 });
 
@@ -90,12 +96,17 @@ app.post("/urls", (req, res) => {
     return res.status(403).send("Forbidden Please Login to post")
   }
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL
+  urlDatabase[shortURL] = {
+    longURL: req.body.longURL,
+    userID: req.cookies["user_id"]
+  }
+  console.log(urlDatabase)
   res.redirect(`urls/${shortURL}`)
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL]
+
+  const longURL = urlDatabase[req.params.shortURL].longURL
   res.redirect(longURL)
 });
 
@@ -105,7 +116,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.longURL
+  urlDatabase[req.params.shortURL].longURL = req.body.longURL
+  console.log("urldata", urlDatabase)
   res.redirect("/urls")
 });
 

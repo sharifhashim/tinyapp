@@ -1,3 +1,4 @@
+// All app requirements
 const express = require("express");
 const app = express();
 const PORT = 8080;
@@ -7,6 +8,7 @@ const morgan = require('morgan')
 const bcrypt = require("bcryptjs")
 const { getUserByEmail, urlsForUser, generateRandomString } = require('./helpers')
 
+// All middleware 
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
@@ -15,6 +17,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
 app.use(morgan("dev"))
 
+// Users DB 
 const users = {
   "userRandomID": {
     id: "userRandomID",
@@ -22,7 +25,7 @@ const users = {
     password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   }
 };
-
+// urlDatabase example shortURL and longURL provided to start off
 let urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
@@ -34,12 +37,8 @@ let urlDatabase = {
   }
 };
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
+// Get route to display /urls/new page renders urls_new.ejs
 app.get("/urls/new", (req, res) => {
-  console.log("req.session.id", req.session.user_id)
   const templateVars = {
     user_id: users[req.session.user_id]
   }
@@ -49,6 +48,7 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars)
 })
 
+// Get route for /register page renders urls_register.ejs
 app.get("/register", (req, res) => {
   const templateVars = { 
     user_id: users[req.session.user_id],
@@ -58,6 +58,7 @@ app.get("/register", (req, res) => {
   res.render("urls_register", templateVars)
 });
 
+// Post route for register page checks if email already exists in DB sends appropriate responses, hashs password and encrypt cookie redirect to /urls page
 app.post("/register", (req, res) => {
   const {email, password} = req.body
   const hashedPassword = bcrypt.hashSync(password, 10)
@@ -70,7 +71,6 @@ app.post("/register", (req, res) => {
   }
   const id = generateRandomString();
   req.session.user_id = id
-  console.log("req.session post register>>>", req.session.user_id)
   users[id] = {
     id: id,
     email: req.body.email,
@@ -79,6 +79,7 @@ app.post("/register", (req, res) => {
   res.redirect("/urls")
 });
 
+// Get route for /urls page renders urls_index.ejs page
 app.get("/urls", (req, res) => {
   const id = users[req.session.user_id]
   if (!id) {
@@ -91,6 +92,7 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+// Get route for /urls/:shortURL, if not logged in sends appropriate response, renders urls_show.ejs
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const templateVars = { 
@@ -104,6 +106,7 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars)
 });
 
+// Post route for new urls
 app.post("/urls", (req, res) => {
   const templateVars = {
     user_id: users[req.session.user_id]
@@ -116,10 +119,10 @@ app.post("/urls", (req, res) => {
     longURL: req.body.longURL,
     userID: req.session.user_id
   }
-  console.log(urlDatabase)
   res.redirect(`urls/${shortURL}`)
 });
 
+// Get route for short url, redirects you to longURL page
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL
   if (!urlDatabase[shortURL]) {
@@ -129,6 +132,7 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL)
 });
 
+// Post route to delete short URL from page
 app.post("/urls/:shortURL/delete", (req, res) => {
   if (urlDatabase[req.params.shortURL].userID !== req.session.user_id) {
     res.send("Only the Owner/Creater of URLs can delete")
@@ -137,12 +141,13 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls")
 });
 
+// Post route to edit longURl associated with shortURL already generated
 app.post("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL].longURL = req.body.longURL
-  console.log("urldata", urlDatabase)
   res.redirect("/urls")
 });
 
+// Get route for login page renders urls_index.ejs
 app.get("/login", (req, res) => {
   const templateVars = { 
     user_id: users[req.session.user_id],
@@ -152,6 +157,7 @@ app.get("/login", (req, res) => {
   res.render("urls_login", templateVars)
 });
 
+// Post route for login page, check if email field is blank or incorrect, check hashed password for match, sets encrypted cookie and redirect to /urls page
 app.post("/login", (req, res) => {
   const {email, password} = req.body
   if (!email) {
@@ -167,11 +173,12 @@ app.post("/login", (req, res) => {
   return res.status(403).send('Forbidden Incorrect Password')
 });
 
+// Post route for logout button clears session cookies and redirct to login page
 app.post("/logout", (req, res) => {
   req.session = null
   res.redirect("/login")
 });
 
+// Server set to listen on port listed at const PORT variable
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
 });

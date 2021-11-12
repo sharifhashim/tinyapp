@@ -1,28 +1,28 @@
 const getUserByEmail = function(email, database) {
   for (key in database) {
     if (database[key].email === email) {
-      return database[key]
+      return database[key];
     }
   }
   return null;
-}
+};
 
 const urlsForUser = function(id, database) {
-  let urlsForUserDB = {}
+  let urlsForUserDB = {};
   for (let key in database) {
     if (database[key].userID === id) {
-      urlsForUserDB[key] = database[key]
+      urlsForUserDB[key] = database[key];
     }
   }
-  return urlsForUserDB
-}
+  return urlsForUserDB;
+};
 
 const generateRandomString = function() {
-  let alphaNumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  let randomString = ""
+  let alphaNumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let randomString = "";
   for (let i = 0; i < 6; i++) {
-    randomString += alphaNumeric[Math.floor(Math.random() * alphaNumeric.length)]
+    randomString += alphaNumeric[Math.floor(Math.random() * alphaNumeric.length)];
   }
-  return randomString
-}
-module.exports = { getUserByEmail, urlsForUser, generateRandomString}
+  return randomString;
+};
+module.exports = { getUserByEmail, urlsForUser, generateRandomString};

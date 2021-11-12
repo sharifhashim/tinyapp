@@ -2,19 +2,23 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+const cookieSession = require('cookie-session');
 const morgan = require('morgan')
+const bcrypt = require("bcryptjs")
 
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}))
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
-app.use(cookieParser());
 app.use(morgan("dev"))
 
 const users = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   }
 };
 
@@ -34,8 +38,9 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
+  console.log("req.session.id", req.session.user_id)
   const templateVars = {
-    user_id: users[req.cookies["user_id"]]
+    user_id: users[req.session.user_id]
   }
   if (!templateVars.user_id) {
     return res.redirect("/login")
@@ -45,7 +50,7 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/register", (req, res) => {
   const templateVars = { 
-    user_id: users[req.cookies["user_id"]],
+    user_id: users[req.session.user_id],
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL]
   }
@@ -54,6 +59,7 @@ app.get("/register", (req, res) => {
 
 app.post("/register", (req, res) => {
   const {email, password} = req.body
+  const hashedPassword = bcrypt.hashSync(password, 10)
   if (!email) {
     return res.status(400).send('Bad Request Please Enter An Email')
   }
@@ -63,22 +69,23 @@ app.post("/register", (req, res) => {
     }
   }
   const id = generateRandomString();
+  req.session.user_id = id
+  console.log("req.session post register>>>", req.session.user_id)
   users[id] = {
-    id,
+    id: id,
     email: req.body.email,
-    password: req.body.password
+    password: hashedPassword
   };
-  res.cookie("user_id", id)
   res.redirect("/urls")
 });
 
 app.get("/urls", (req, res) => {
-  const id = users[req.cookies["user_id"]]
+  const id = users[req.session.user_id]
   const templateVars = { 
     user_id: id, 
     urls: urlsForUser(id.id) 
   };
-  //console.log("id ->", id.id)
+  //console.log("id ->", id)
   //console.log(templateVars)
   if (!templateVars.user_id) {
     return res.send("Please Login or Register to view URLs")
@@ -89,7 +96,7 @@ app.get("/urls", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const templateVars = { 
-    user_id: users[req.cookies["user_id"]],
+    user_id: users[req.session.user_id],
     shortURL: shortURL, 
     longURL: urlDatabase[shortURL].longURL
   }
@@ -101,7 +108,7 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.post("/urls", (req, res) => {
   const templateVars = {
-    user_id: users[req.cookies["user_id"]]
+    user_id: users[req.session.user_id]
   }
   if (!templateVars.user_id) {
     return res.status(403).send("Forbidden Please Login to post")
@@ -109,7 +116,7 @@ app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
-    userID: req.cookies["user_id"]
+    userID: req.session.user_id
   }
   console.log(urlDatabase)
   res.redirect(`urls/${shortURL}`)
@@ -125,7 +132,7 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID !== req.cookies["user_id"]) {
+  if (urlDatabase[req.params.shortURL].userID !== req.session.user_id) {
     res.send("Only the Owner/Creater of URLs can delete")
   }
   delete urlDatabase[req.params.shortURL]
@@ -140,7 +147,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
 app.get("/login", (req, res) => {
   const templateVars = { 
-    user_id: users[req.cookies["user_id"]],
+    user_id: users[req.session.user_id],
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL]
   }
@@ -154,16 +161,19 @@ app.post("/login", (req, res) => {
   }
   for (user in users) {
     if (users[user].email === email) {
-    } if (users[user].password === password) {
-        res.cookie("user_id", users[user].id) 
-      return res.redirect("/urls")
-    }
+      if (bcrypt.compareSync(password, users[user].password)) {
+        req.session.user_id = users[user].id
+        console.log("login cookie >>", req.session.user_id)
+        
+        return res.redirect("/urls")
+      }
+    } 
   }
-  return res.status(403).send('Forbidden')
+  return res.status(403).send('Forbidden Incorrect Password')
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id")
+  req.session = null
   res.redirect("/login")
 });
 

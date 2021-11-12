@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
 const morgan = require('morgan')
 const bcrypt = require("bcryptjs")
+const { getUserByEmail, urlsForUser, generateRandomString } = require('./helpers')
 
 app.use(cookieSession({
   name: 'session',
@@ -63,10 +64,9 @@ app.post("/register", (req, res) => {
   if (!email) {
     return res.status(400).send('Bad Request Please Enter An Email')
   }
-  for (user in users) {
-    if (users[user].email === email) {
-      return res.status(400).send('Bad Request Email Already Exists')
-    }
+  const user = getUserByEmail(email, users);
+  if (user) {
+    return res.status(400).send('Bad Request Email Already Exists')
   }
   const id = generateRandomString();
   req.session.user_id = id
@@ -81,15 +81,13 @@ app.post("/register", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const id = users[req.session.user_id]
-  const templateVars = { 
-    user_id: id, 
-    urls: urlsForUser(id.id) 
-  };
-  //console.log("id ->", id)
-  //console.log(templateVars)
-  if (!templateVars.user_id) {
+  if (!id) {
     return res.send("Please Login or Register to view URLs")
   }
+  const templateVars = { 
+    user_id: id, 
+    urls: urlsForUser(id.id, urlDatabase) 
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -159,15 +157,12 @@ app.post("/login", (req, res) => {
   if (!email) {
     return res.status(403).send('Forbidden Please Enter An Email')
   }
-  for (user in users) {
-    if (users[user].email === email) {
-      if (bcrypt.compareSync(password, users[user].password)) {
-        req.session.user_id = users[user].id
-        console.log("login cookie >>", req.session.user_id)
-        
-        return res.redirect("/urls")
-      }
-    } 
+  const user = getUserByEmail(email, users);
+  if (user) {
+    if (bcrypt.compareSync(password, user.password)) {
+      req.session.user_id = user.id
+      return res.redirect("/urls")
+    }
   }
   return res.status(403).send('Forbidden Incorrect Password')
 });
@@ -180,23 +175,3 @@ app.post("/logout", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-function generateRandomString() {
-  let alphaNumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  let randomString = ""
-  for (let i = 0; i < 6; i++) {
-    randomString += alphaNumeric[Math.floor(Math.random() * alphaNumeric.length)]
-  }
-  return randomString
-}
-
-function urlsForUser(id) {
-  let urlsForUserDB = {}
-  for (let key in urlDatabase) {
-    if (urlDatabase[key].userID === id) {
-      urlsForUserDB[key] = urlDatabase[key]
-    }
-  }
-  return urlsForUserDB
-}
-

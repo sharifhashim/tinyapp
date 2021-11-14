@@ -36,6 +36,14 @@ let urlDatabase = {
     userID: "userRandomID"
   }
 };
+// Get route for "localhost:8080/" if user is logged in redirect to /urls, if not logged redirect to /login 
+app.get("/", (req, res) => {
+  const id = users[req.session.user_id];
+  if (!id) {
+    return res.redirect("/login");
+  }
+  res.redirect("/urls")
+})
 
 // Get route to display /urls/new page renders urls_new.ejs
 app.get("/urls/new", (req, res) => {
@@ -83,7 +91,7 @@ app.post("/register", (req, res) => {
 app.get("/urls", (req, res) => {
   const id = users[req.session.user_id];
   if (!id) {
-    return res.send("Please Login or Register to view URLs");
+    return res.redirect("/login");
   }
   const templateVars = {
     user_id: id,

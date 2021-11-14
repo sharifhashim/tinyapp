@@ -44,7 +44,18 @@ app.get("/", (req, res) => {
   }
   res.redirect("/urls")
 })
-
+// Get route for /urls page renders urls_index.ejs page if user is logged in, redirect to login if user is not logged in
+app.get("/urls", (req, res) => {
+  const id = users[req.session.user_id];
+  if (!id) {
+    return res.redirect("/login");
+  }
+  const templateVars = {
+    user_id: id,
+    urls: urlsForUser(id.id, urlDatabase)
+  };
+  res.render("urls_index", templateVars);
+});
 // Get route to display /urls/new page renders urls_new.ejs
 app.get("/urls/new", (req, res) => {
   const templateVars = {
@@ -55,7 +66,37 @@ app.get("/urls/new", (req, res) => {
   }
   res.render("urls_new", templateVars);
 });
-
+// Get route for /urls/:shortURL, if not logged in sends appropriate response, renders urls_show.ejs
+app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const templateVars = {
+    user_id: users[req.session.user_id],
+    shortURL: shortURL,
+    longURL: urlDatabase[shortURL].longURL
+  };
+  if (!templateVars.user_id) {
+    return res.status(403).send("Forbidden Please Login");
+  }
+  res.render("urls_show", templateVars);
+});
+// Get route for short url, redirects you to longURL page
+app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  if (!urlDatabase[shortURL]) {
+    res.status(404).send("Page Not Found");
+  }
+  const longURL = urlDatabase[shortURL].longURL;
+  res.redirect(longURL);
+});
+// Get route for login page renders urls_index.ejs
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user_id: users[req.session.user_id],
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]
+  };
+  res.render("urls_login", templateVars);
+});
 // Get route for /register page renders urls_register.ejs
 app.get("/register", (req, res) => {
   const templateVars = {
@@ -86,34 +127,6 @@ app.post("/register", (req, res) => {
   };
   res.redirect("/urls");
 });
-
-// Get route for /urls page renders urls_index.ejs page
-app.get("/urls", (req, res) => {
-  const id = users[req.session.user_id];
-  if (!id) {
-    return res.redirect("/login");
-  }
-  const templateVars = {
-    user_id: id,
-    urls: urlsForUser(id.id, urlDatabase)
-  };
-  res.render("urls_index", templateVars);
-});
-
-// Get route for /urls/:shortURL, if not logged in sends appropriate response, renders urls_show.ejs
-app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const templateVars = {
-    user_id: users[req.session.user_id],
-    shortURL: shortURL,
-    longURL: urlDatabase[shortURL].longURL
-  };
-  if (!templateVars.user_id) {
-    return res.status(403).send("Forbidden Please Login");
-  }
-  res.render("urls_show", templateVars);
-});
-
 // Post route for new urls
 app.post("/urls", (req, res) => {
   const templateVars = {
@@ -129,17 +142,6 @@ app.post("/urls", (req, res) => {
   };
   res.redirect(`urls/${shortURL}`);
 });
-
-// Get route for short url, redirects you to longURL page
-app.get("/u/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  if (!urlDatabase[shortURL]) {
-    res.status(404).send("Page Not Found");
-  }
-  const longURL = urlDatabase[shortURL].longURL;
-  res.redirect(longURL);
-});
-
 // Post route to delete short URL from page
 app.post("/urls/:shortURL/delete", (req, res) => {
   if (urlDatabase[req.params.shortURL].userID !== req.session.user_id) {
@@ -148,23 +150,11 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
-
 // Post route to edit longURl associated with shortURL already generated
 app.post("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   res.redirect("/urls");
 });
-
-// Get route for login page renders urls_index.ejs
-app.get("/login", (req, res) => {
-  const templateVars = {
-    user_id: users[req.session.user_id],
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]
-  };
-  res.render("urls_login", templateVars);
-});
-
 // Post route for login page, check if email field is blank or incorrect, check hashed password for match, sets encrypted cookie and redirect to /urls page
 app.post("/login", (req, res) => {
   const {email, password} = req.body;
@@ -180,7 +170,6 @@ app.post("/login", (req, res) => {
   }
   return res.status(403).send('Forbidden Incorrect Password');
 });
-
 // Post route for logout button clears session cookies and redirct to login page
 app.post("/logout", (req, res) => {
   req.session = null;

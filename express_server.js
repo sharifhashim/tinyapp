@@ -79,9 +79,7 @@ app.get("/urls/:shortURL", (req, res) => {
   }
   // IF logged in only give access to urls belonging to user else show error
   if (id) {
-    console.log("userid get urls", id)
     if (id.id === urlDatabase[shortURL].userID) {
-      console.log("inner if", urlDatabase[shortURL])
       const templateVars = {
         user_id: users[req.session.user_id],
         shortURL: shortURL,
@@ -178,7 +176,6 @@ app.post("/login", (req, res) => {
   if (user) {
     if (bcrypt.compareSync(password, user.password)) {
       req.session.user_id = user.id;
-      console.log(user.id)
       return res.redirect("/urls");
     }
   }

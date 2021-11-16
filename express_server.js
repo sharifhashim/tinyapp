@@ -68,16 +68,29 @@ app.get("/urls/new", (req, res) => {
 });
 // Get route for /urls/:shortURL, if not logged in sends appropriate response, renders urls_show.ejs
 app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const templateVars = {
-    user_id: users[req.session.user_id],
-    shortURL: shortURL,
-    longURL: urlDatabase[shortURL].longURL
-  };
-  if (!templateVars.user_id) {
+  const id = users[req.session.user_id]
+  if (!id) {
     return res.status(403).send("Forbidden Please Login");
   }
-  res.render("urls_show", templateVars);
+  const shortURL = req.params.shortURL;
+  // If short URL not in database send error
+  if (!urlDatabase[shortURL]) {
+    return res.status(403).send("Forbidden Short URL doesn't exist")
+  }
+  // IF logged in only give access to urls belonging to user else show error
+  if (id) {
+    console.log("userid get urls", id)
+    if (id.id === urlDatabase[shortURL].userID) {
+      console.log("inner if", urlDatabase[shortURL])
+      const templateVars = {
+        user_id: users[req.session.user_id],
+        shortURL: shortURL,
+        longURL: urlDatabase[shortURL].longURL
+      };
+      return res.render("urls_show", templateVars)
+    }
+  }
+  return res.status(403).send("Forbidden URL Belongs to different User");
 });
 // Get route for short url, redirects you to longURL page
 app.get("/u/:shortURL", (req, res) => {
@@ -165,6 +178,7 @@ app.post("/login", (req, res) => {
   if (user) {
     if (bcrypt.compareSync(password, user.password)) {
       req.session.user_id = user.id;
+      console.log(user.id)
       return res.redirect("/urls");
     }
   }

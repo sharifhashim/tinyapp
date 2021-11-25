@@ -1,5 +1,5 @@
 const getUserByEmail = function(email, database) {
-  for (key in database) {
+  for (const key in database) {
     if (database[key].email === email) {
       return database[key];
     }
@@ -9,7 +9,7 @@ const getUserByEmail = function(email, database) {
 
 const urlsForUser = function(id, database) {
   let urlsForUserDB = {};
-  for (let key in database) {
+  for (const key in database) {
     if (database[key].userID === id) {
       urlsForUserDB[key] = database[key];
     }

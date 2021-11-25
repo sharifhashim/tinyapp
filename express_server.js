@@ -48,7 +48,7 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   const id = users[req.session.user_id];
   if (!id) {
-    return res.redirect("/login");
+    return res.status(403).send("Please login to access URLs");
   }
   const templateVars = {
     user_id: id,
@@ -124,6 +124,9 @@ app.post("/register", (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
   if (!email) {
     return res.status(400).send('Bad Request Please Enter An Email');
+  }
+  if (!password) {
+    return res.status(400).send('Bad Request Please Enter A Password');
   }
   const user = getUserByEmail(email, users);
   if (user) {
